@@ -264,25 +264,7 @@ Deployment Information
 
 Contract ID (Testnet): CBMT5ZHB7D34ATEG5Q3NETD6OOLAU2MOL6YYFUUGY2PVQAGWBJTJTAAQ
 
-Network: Test SDF Network ; September 2015
 
-Status: Deployed and Live on Stellar Testnet
-
-Horizon Endpoint: https://horizon-testnet.stellar.org
-
-Soroban RPC: https://soroban-testnet.stellar.org
-
-WASM Binary: stellar_micro_insurance.wasm (323 bytes optimized)
-
-Language: Rust with Soroban SDK 21.7.7
-
-Target: wasm32-unknown-unknown
-
-Features: +reference-types, +bulk-memory, +simd128
-
-Verification: https://stellar.expert/explorer/testnet/contract/CBMT5ZHB7D34ATEG5Q3NETD6OOLAU2MOL6YYFUUGY2PVQAGWBJTJTAAQ
 
 ![alt text](<Screenshot 2025-11-02 153830.png>)
 
-*Last Updated: November 2025*  
-*Version: 1.0.0*
