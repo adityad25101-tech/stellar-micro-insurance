@@ -1,0 +1,104 @@
+.policy-list-container {
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: white;
+}
+
+.policy-list-header {
+  margin-bottom: 30px;
+}
+
+.policy-list-header h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.policies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.policy-card {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.policy-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.policy-card h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+}
+
+.policy-detail {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.policy-detail-label {
+  font-weight: 500;
+}
+
+.policy-detail-value {
+  text-align: right;
+}
+
+.policy-status {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.status-active {
+  background: rgba(76, 175, 80, 0.3);
+  color: #90ee90;
+}
+
+.status-claimed {
+  background: rgba(255, 193, 7, 0.3);
+  color: #ffd700;
+}
+
+.claim-btn {
+  width: 100%;
+  margin-top: 15px;
+  padding: 10px;
+  background: rgba(76, 175, 80, 0.8);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.claim-btn:hover {
+  background: rgba(76, 175, 80, 1);
+}
+
+.claim-btn:disabled {
+  background: rgba(128, 128, 128, 0.5);
+  cursor: not-allowed;
+}
+
+.empty-message {
+  text-align: center;
+  font-size: 16px;
+  opacity: 0.8;
+  padding: 40px;
+}
