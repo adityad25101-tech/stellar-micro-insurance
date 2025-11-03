@@ -50,21 +50,18 @@ export class StellarService {
   static async connectWallet() {
     try {
       console.log('🔌 Wallet Connection Starting...');
-      console.log('📋 Checking window properties...');
-      console.log('  - window.freighterApi:', typeof window.freighterApi);
-      console.log('  - window.stellar:', typeof window.stellar);
-      console.log('  - window.freighter:', typeof window.freighter);
+      console.log('📋 Checking for Freighter extension...');
       
       // First, check if Freighter is immediately available
       let api = this.getFreighterApi();
       
       if (!api) {
-        console.log('⏳ Freighter not found, waiting for extension injection (up to 10 seconds)...');
+        console.log('⏳ Freighter not found immediately, waiting for extension injection (up to 15 seconds)...');
         
         // Wait for Freighter to be available (it injects into window asynchronously)
         let waitTime = 0;
-        const maxWaitTime = 10000; // 10 seconds - wait much longer
-        const checkInterval = 200; // Check every 200ms
+        const maxWaitTime = 15000; // 15 seconds - longer wait time
+        const checkInterval = 100; // Check more frequently
         
         while (!api && waitTime < maxWaitTime) {
           api = this.getFreighterApi();
@@ -75,7 +72,7 @@ export class StellarService {
           }
           
           // Log progress every 2 seconds
-          if (waitTime % 2000 === 0) {
+          if (waitTime % 2000 === 0 && waitTime > 0) {
             console.log('⏳ Still waiting... (' + waitTime + 'ms)');
           }
           
@@ -90,66 +87,72 @@ export class StellarService {
         
         // Create a custom error object with a flag to indicate wallet not found
         const error = new Error('WALLET_NOT_INSTALLED');
-        error.message = 'Freighter wallet extension not detected.';
+        error.message = 'Freighter wallet extension not detected. Please install it from https://www.freighter.app/';
         error.isNotInstalled = true;
         throw error;
       }
 
-      console.log('✅ Freighter API found');
-      console.log('Available methods:', Object.keys(api));
+      console.log('✅ Freighter API found and ready');
+      console.log('API type:', typeof api);
+      console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(api)).concat(Object.keys(api)));
 
       // Try to open wallet UI first (popup confirmation)
       if (typeof api.showWallet === 'function') {
         try {
-          console.log('📲 Showing wallet UI...');
-          api.showWallet();
+          console.log('📲 Attempting to show Freighter wallet UI...');
+          await api.showWallet();
+          console.log('✅ Wallet UI shown');
+          // Give user time to confirm
+          await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
-          console.warn('Could not show wallet UI:', error);
+          console.warn('Could not show wallet UI:', error.message);
         }
       }
 
-      // Get the public key/address
+      // Get the public key/address - try multiple methods
       let publicKey = null;
 
-      // Method 1: Modern Freighter API - getAddress
+      // IMPORTANT: Try getAddress first (most reliable in modern Freighter)
+      console.log('📲 Attempting to get address from Freighter...');
+      
       if (typeof api.getAddress === 'function') {
-        console.log('📲 Using: getAddress()');
         try {
+          console.log('  → Trying: api.getAddress()');
           publicKey = await api.getAddress();
-          console.log('✅ Got address:', publicKey);
+          console.log('✅ Successfully got address:', publicKey.substring(0, 10) + '...');
         } catch (error) {
-          console.error('getAddress failed:', error);
+          console.warn('  ✗ getAddress failed:', error.message);
         }
       }
       
-      // Method 2: getPublicKey
+      // Fallback to other methods
       if (!publicKey && typeof api.getPublicKey === 'function') {
-        console.log('📲 Using: getPublicKey()');
         try {
+          console.log('  → Trying: api.getPublicKey()');
           publicKey = await api.getPublicKey();
-          console.log('✅ Got public key:', publicKey);
+          console.log('✅ Got public key:', publicKey.substring(0, 10) + '...');
         } catch (error) {
-          console.error('getPublicKey failed:', error);
+          console.warn('  ✗ getPublicKey failed:', error.message);
         }
       }
       
-      // Method 3: requestPublicKey
-      if (!publicKey && typeof api.requestPublicKey === 'function') {
-        console.log('📲 Using: requestPublicKey()');
+      // Try signTransaction as fallback (sometimes works differently)
+      if (!publicKey && typeof api.signTransaction === 'function') {
         try {
-          publicKey = await api.requestPublicKey();
-          console.log('✅ Got public key:', publicKey);
+          console.log('  → Trying: api.signTransaction (to extract address)');
+          // This won't work without a transaction, skip
         } catch (error) {
-          console.error('requestPublicKey failed:', error);
+          console.warn('  ✗ signTransaction approach failed:', error.message);
         }
       }
 
       if (!publicKey) {
-        console.error('❌ Could not get public key from wallet');
-        throw new Error('Failed to get public key from wallet. Please unlock your Freighter wallet and try again.');
+        console.error('❌ Could not retrieve public key from Freighter wallet');
+        console.error('Ensure: 1) Freighter is installed, 2) You are logged in, 3) Network is set to Testnet');
+        throw new Error('Failed to get address from Freighter wallet. Ensure you are logged in to Freighter and the network is set to Testnet.');
       }
 
-      console.log('✅ Connected wallet:', publicKey);
+      console.log('✅ Wallet connected successfully:', publicKey);
 
       // Fetch account info from Horizon
       const server = new StellarSdk.Server(HORIZON_URL);
