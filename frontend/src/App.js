@@ -14,68 +14,40 @@ function App() {
   useEffect(() => {
     // Small delay to let Freighter extension inject before attempting connection
     const timer = setTimeout(() => {
-      // Auto-connect on load
-      checkAndConnect();
-    }, 1000); // Increased delay to 1 second for extension injection
+      connectWallet();
+    }, 500);
     
     return () => clearTimeout(timer);
   }, []);
-
-  const checkAndConnect = async () => {
-    try {
-      setError(null);
-      
-      // Check if wallet is installed first
-      if (!StellarService.isFreighterInstalled()) {
-        console.log('💾 Freighter not installed');
-        setError('WALLET_NOT_INSTALLED');
-        return;
-      }
-      
-      console.log('✅ Freighter detected, attempting connection...');
-      await connectWallet();
-    } catch (error) {
-      console.error('Auto-connection failed:', error);
-      // Don't set error here, let user click connect button
-    }
-  };
 
   const connectWallet = async () => {
     try {
       setError(null);
       setLoading(true);
-      console.log('🔌 Connecting wallet...');
       
       // Check if wallet is installed
       if (!StellarService.isFreighterInstalled()) {
-        console.log('💾 Wallet not installed');
+        console.log('💾 Wallet not installed, prompting download...');
         setError('WALLET_NOT_INSTALLED');
         setLoading(false);
         return;
       }
       
-      console.log('✅ Freighter found, opening extension...');
-      // Try to open the wallet extension
+      // Try to open the wallet extension first
       StellarService.openFreighterExtension();
       
-      console.log('⏳ Waiting for wallet response...');
-      // Give the wallet UI time to appear and user time to confirm
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Give the wallet UI time to appear, then connect
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log('📲 Requesting wallet connection...');
       const accountInfo = await StellarService.connectWallet();
-      
-      console.log('✅ Wallet connected:', accountInfo);
       setAccount(accountInfo);
-      setError(null);
     } catch (error) {
-      console.error('❌ Failed to connect wallet:', error);
-      
+      console.error('Failed to connect wallet:', error);
       // Check if it's a not installed error
-      if (error.isNotInstalled || error.message.includes('WALLET_NOT_INSTALLED')) {
+      if (error.isNotInstalled || error.message === 'WALLET_NOT_INSTALLED') {
         setError('WALLET_NOT_INSTALLED');
       } else {
-        setError(error.message || 'Failed to connect wallet. Please try again.');
+        setError(error.message || 'Failed to connect wallet');
       }
     } finally {
       setLoading(false);
@@ -132,26 +104,16 @@ function App() {
           
           {error === 'WALLET_NOT_INSTALLED' && (
             <div className="bg-yellow-100 border-2 border-yellow-400 text-yellow-800 px-4 py-4 rounded mb-6">
-              <p className="font-bold mb-3">📥 Freighter Wallet Required</p>
-              <p className="text-sm mb-4">Freighter wallet extension is required to use this app. Download and install it from the official website.</p>
+              <p className="font-bold mb-3">📥 Freighter Wallet Not Found</p>
+              <p className="text-sm mb-4">The Freighter wallet extension is not installed on your browser. Install it to continue.</p>
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => {
-                    window.open('https://www.freighter.app/', '_blank');
-                  }}
-                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded font-semibold transition flex items-center justify-center gap-2"
+                  onClick={() => StellarService.downloadFreighter()}
+                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded font-semibold transition"
                 >
-                  � Visit https://www.freighter.app/
+                  📥 Download & Install Freighter
                 </button>
-                <div className="bg-yellow-50 p-3 rounded text-xs text-gray-700">
-                  <p className="font-semibold mb-2">After installation:</p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Click the Freighter icon in your browser</li>
-                    <li>Create or import a wallet</li>
-                    <li>Set network to <strong>Testnet</strong></li>
-                    <li>Return here and click "Connect Wallet"</li>
-                  </ol>
-                </div>
+                <p className="text-xs text-gray-600 mt-2">After installation, refresh this page and click Connect again</p>
               </div>
             </div>
           )}
@@ -159,30 +121,20 @@ function App() {
           {error && error !== 'WALLET_NOT_INSTALLED' && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm text-left">
               <p className="font-bold mb-2">❌ Connection Error</p>
-              <p className="text-xs mb-3 font-mono break-all bg-red-50 p-2 rounded">{error}</p>
+              <p className="text-xs mb-3 font-mono break-all">{error}</p>
               <div className="flex flex-col gap-2">
-                <p className="text-xs font-semibold text-gray-700">Try these steps:</p>
-                <ol className="list-decimal list-inside text-xs space-y-1 text-gray-700">
-                  <li>Ensure Freighter extension is installed</li>
-                  <li>Click Freighter icon to open wallet</li>
-                  <li>Check network is set to <strong>Testnet</strong></li>
-                  <li>Ensure you are logged in to Freighter</li>
-                  <li>Open browser DevTools (F12) → Console to see detailed errors</li>
-                </ol>
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={() => StellarService.openFreighterExtension()}
-                    className="flex-1 bg-red-200 hover:bg-red-300 px-2 py-1 rounded text-xs font-semibold transition"
-                  >
-                    🔓 Open Freighter
-                  </button>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="flex-1 bg-blue-200 hover:bg-blue-300 px-2 py-1 rounded text-xs font-semibold transition"
-                  >
-                    🔄 Refresh Page
-                  </button>
-                </div>
+                <button
+                  onClick={() => StellarService.openFreighterExtension()}
+                  className="text-left bg-red-200 hover:bg-red-300 px-2 py-1 rounded text-xs font-semibold transition"
+                >
+                  � Open Freighter Extension
+                </button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="text-left bg-blue-200 hover:bg-blue-300 px-2 py-1 rounded text-xs font-semibold transition"
+                >
+                  🔄 Refresh Page
+                </button>
               </div>
             </div>
           )}

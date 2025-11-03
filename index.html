@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stellar Micro Insurance</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script>
+        // SOLUTION BASED ON FREIGHTER RESEARCH
+        // Key finding: window.freighter injects directly, not window.freighterApi
+        const waitForFreighter = () => {
+            return new Promise((resolve) => {
+                let attempts = 0;
+                const maxAttempts = 150;
+                
+                const checkFreighter = () => {
+                    if (window.freighter) {
+                        console.log('✅ Freighter API found');
+                        resolve(window.freighter);
+                        return;
+                    }
+                    
+                    attempts++;
+                    if (attempts < maxAttempts) {
+                        if (attempts % 10 === 0) {
+                            console.log(`⏳ Waiting... ${attempts * 100}ms`);
+                        }
+                        setTimeout(checkFreighter, 100);
+                    } else {
+                        resolve(null);
+                    }
+                };
+                
+                checkFreighter();
+            });
+        };
+
+        const { useState, useEffect } = React;
+        const e = React.createElement;
+
+        function App() {
+            const [freighter, setFreighter] = useState(null);
+            const [account, setAccount] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [status, setStatus] = useState('Checking for Freighter...');
+
+            useEffect(() => {
+                const init = async () => {
+                    const api = await waitForFreighter();
+                    if (api) {
+                        setFreighter(api);
+                        setStatus('✅ Freighter ready');
+                    } else {
+                        setError('WALLET_NOT_INSTALLED');
+                        setStatus('❌ Freighter not found');
+                    }
+                };
+                init();
+            }, []);
+
+            const connect = async () => {
+                try {
+                    setLoading(true);
+                    setError(null);
+                    console.log('Connecting...');
+                    
+                    // THE KEY FIX: Use getPublicKey() not getAddress()
+                    const address = await window.freighter.getPublicKey();
+                    setAccount(address);
+                    setStatus('Connected!');
+                } catch (err) {
+                    console.error(err);
+                    setError(err.message);
+                    setStatus('Connection failed');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            if (!account) {
+                return e('div', { className: 'min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-4' },
+                    e('div', { className: 'bg-white rounded-lg shadow-xl p-8 text-center max-w-md' },
+                        e('h1', { className: 'text-4xl mb-4' }, '🔐'),
+                        e('h2', { className: 'text-3xl font-bold text-gray-800 mb-4' }, 'Stellar Insurance'),
+                        e('p', { className: 'text-gray-600 mb-6' }, 'Decentralized Insurance'),
+                        
+                        error === 'WALLET_NOT_INSTALLED' && e('div', { className: 'bg-yellow-100 border-2 border-yellow-400 text-yellow-800 px-4 py-4 rounded mb-6' },
+                            e('p', { className: 'font-bold mb-2' }, '📥 Freighter Not Installed'),
+                            e('a', {
+                                href: 'https://www.freighter.app/',
+                                target: '_blank',
+                                className: 'inline-block w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded font-semibold mt-2'
+                            }, '🔗 Download Freighter')
+                        ),
+                        
+                        error && error !== 'WALLET_NOT_INSTALLED' && e('div', { className: 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4' },
+                            e('p', { className: 'font-bold mb-1' }, '❌ ' + error)
+                        ),
+                        
+                        e('button', {
+                            onClick: connect,
+                            disabled: loading || !freighter,
+                            className: 'w-full py-3 rounded-lg font-semibold text-white ' + 
+                                (freighter && !loading ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400')
+                        }, loading ? '⏳ Connecting...' : '🔗 Connect Freighter'),
+                        
+                        e('p', { className: 'text-xs text-gray-600 mt-3' }, status)
+                    )
+                );
+            }
+
+            return e('div', { className: 'min-h-screen bg-gray-100' },
+                e('div', { className: 'max-w-7xl mx-auto p-8' },
+                    e('div', { className: 'bg-white rounded-lg shadow p-6' },
+                        e('h2', { className: 'text-2xl font-bold mb-4' }, '✅ Connected!'),
+                        e('p', { className: 'text-gray-600 mb-4' }, account),
+                        e('button', {
+                            onClick: () => setAccount(null),
+                            className: 'bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded'
+                        }, '🚪 Disconnect')
+                    )
+                )
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(e(App));
+    </script>
+</body>
+</html>
