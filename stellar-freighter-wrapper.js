@@ -14,9 +14,13 @@
  *   node stellar-freighter-wrapper.js --invoke [contract_id] [function] [args]
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Color codes for console output
 const colors = {
@@ -335,11 +339,11 @@ Examples:
 }
 
 // Run
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
     interactiveMenu();
 }
 
-module.exports = {
+export {
     checkStellarCLI,
     setTestnet,
     getAccountInfo,
