@@ -7,6 +7,11 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        console.log('📄 Page loading...');
+        console.log('React version check:', typeof window.React !== 'undefined' ? 'OK' : 'PENDING');
+        console.log('ReactDOM version check:', typeof window.ReactDOM !== 'undefined' ? 'OK' : 'PENDING');
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
@@ -62,7 +67,12 @@
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f3f4f6;">
+        <div style="text-align: center; padding: 20px;">
+            <h1 style="font-size: 24px; margin-bottom: 10px;">⏳ Loading Stellar Insurance...</h1>
+            <p style="color: #666; font-size: 14px;">Please wait while the application initializes</p>
+        </div>
+    </div>
     
     <script>
         // FREIGHTER CONNECTION - BRAVE BROWSER OPTIMIZED
@@ -412,6 +422,25 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(e(App));
+    </script>
+    <script>
+        // Error handler
+        window.addEventListener('error', (event) => {
+            console.error('🔴 JavaScript Error:', event.error);
+            console.error('Message:', event.message);
+            console.error('Stack:', event.error?.stack);
+            document.getElementById('root').innerHTML = `
+                <div style="padding: 20px; color: red; font-family: monospace;">
+                    <h2>❌ Error Loading App</h2>
+                    <p>${event.message}</p>
+                    <p style="color: #666; font-size: 12px;">Check DevTools console (F12) for details</p>
+                </div>
+            `;
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('🔴 Unhandled Promise Rejection:', event.reason);
+        });
     </script>
 </body>
 </html>
