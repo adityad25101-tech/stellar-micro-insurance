@@ -10,38 +10,169 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
+        
+        /* Brave-specific fixes */
+        button { -webkit-appearance: none; appearance: none; }
+        input { -webkit-appearance: none; appearance: none; }
+        
+        .freighter-status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .freighter-status.ready {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        
+        .freighter-status.error {
+            background-color: #fee2e2;
+            color: #7f1d1d;
+            border: 1px solid #fca5a5;
+        }
+        
+        .freighter-status.loading {
+            background-color: #dbeafe;
+            color: #0c2340;
+            border: 1px solid #93c5fd;
+        }
+        
+        .brave-notice {
+            background-color: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        @supports (-webkit-appearance: none) {
+            /* Brave specific CSS */
+            button:focus {
+                outline: 2px solid #3b82f6;
+                outline-offset: 2px;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
     
     <script>
-        // SOLUTION BASED ON FREIGHTER RESEARCH
-        // Key finding: window.freighter injects directly, not window.freighterApi
+        // FREIGHTER CONNECTION - BRAVE BROWSER OPTIMIZED
+        console.log('🚀 App loading...');
+        console.log('📍 Current URL:', window.location.href);
+        console.log('🌐 Browser:', navigator.userAgent);
+        
+        // Brave-specific: Check if running in Brave
+        const isBrave = navigator.brave !== undefined || /brave/i.test(navigator.userAgent);
+        console.log('🔗 Is Brave Browser?', isBrave);
+        
+        if (isBrave) {
+            console.log('🚨 BRAVE DETECTED - Applying Brave-specific fixes');
+            console.log('💡 Brave requires explicit extension permissions');
+        }
+        
+        console.log('🔍 Checking for Freighter...');
+        
+        // Check all possible injection points
+        console.log('   window.freighter:', typeof window.freighter);
+        console.log('   window.freighterApi:', typeof window.freighterApi);
+        console.log('   window.stellar:', typeof window.stellar);
+        console.log('   window.__STELLAR__:', typeof window.__STELLAR__);
+        
         const waitForFreighter = () => {
             return new Promise((resolve) => {
                 let attempts = 0;
-                const maxAttempts = 150;
+                const maxAttempts = isBrave ? 1000 : 600; // Brave needs more time (100 seconds vs 60)
                 
                 const checkFreighter = () => {
-                    if (window.freighter) {
-                        console.log('✅ Freighter API found');
-                        resolve(window.freighter);
+                    // Try all possible injection points in order of preference
+                    let api = null;
+                    
+                    // Primary: window.freighter (current standard)
+                    if (window.freighter && typeof window.freighter.getPublicKey === 'function') {
+                        api = window.freighter;
+                        console.log('✅ Using window.freighter');
+                    }
+                    // Secondary: window.freighterApi (legacy)
+                    else if (window.freighterApi && typeof window.freighterApi.getPublicKey === 'function') {
+                        api = window.freighterApi;
+                        console.log('✅ Using window.freighterApi');
+                    }
+                    // Tertiary: window.stellar (alternative)
+                    else if (window.stellar && typeof window.stellar.getPublicKey === 'function') {
+                        api = window.stellar;
+                        console.log('✅ Using window.stellar');
+                    }
+                    // Quaternary: window.__STELLAR__ (fallback)
+                    else if (window.__STELLAR__ && typeof window.__STELLAR__.getPublicKey === 'function') {
+                        api = window.__STELLAR__;
+                        console.log('✅ Using window.__STELLAR__');
+                    }
+                    
+                    if (api) {
+                        console.log('✅✅ Freighter API found at attempt', attempts, '(' + (attempts * 100) + 'ms)');
+                        console.log('� API object keys:', Object.keys(api));
+                        resolve(api);
                         return;
                     }
                     
                     attempts++;
+                    const timeMs = attempts * 100;
+                    const timeSec = (timeMs / 1000).toFixed(1);
+                    const percent = Math.round((attempts / maxAttempts) * 100);
+                    
                     if (attempts < maxAttempts) {
-                        if (attempts % 10 === 0) {
-                            console.log(`⏳ Waiting... ${attempts * 100}ms`);
+                        if (attempts === 1 || attempts % 50 === 0 || percent % 20 === 0) {
+                            console.log(`⏳ Waiting (${timeSec}s / ${(maxAttempts * 100 / 1000).toFixed(1)}s max) - ${percent}%`);
                         }
-                        setTimeout(checkFreighter, 100);
+                        
+                        // For Brave: Use longer delays initially, then shorter
+                        const delay = isBrave && attempts < 100 ? 100 : 50;
+                        setTimeout(checkFreighter, delay);
                     } else {
+                        console.error('❌ Freighter not found after ' + (maxAttempts * 100 / 1000) + ' seconds');
+                        
+                        const allProps = Object.keys(window);
+                        const walletProps = allProps.filter(k => 
+                            k.toLowerCase().includes('freighter') || 
+                            k.toLowerCase().includes('stellar') ||
+                            k.toLowerCase().includes('wallet') ||
+                            k.toLowerCase().includes('eth') ||
+                            k.toLowerCase().includes('solana')
+                        );
+                        console.error('🔍 Wallet-related window properties found:', walletProps);
+                        
+                        if (walletProps.length === 0) {
+                            console.error('⚠️ No wallet extensions detected at all!');
+                        }
+                        
+                        // For Brave specific troubleshooting
+                        console.log('\n💡 BRAVE TROUBLESHOOTING STEPS:');
+                        console.log('   1. ✅ Confirm: Is Freighter extension installed?');
+                        console.log('   2. ✅ Check: Extensions → Freighter → Is it ENABLED? (not grayed out)');
+                        console.log('   3. ✅ Permissions: Click Freighter → "Manage extension"');
+                        console.log('   4. ✅ Set "Allow on all sites" or add localhost:3000');
+                        console.log('   5. ✅ Refresh: Ctrl+R or Cmd+R');
+                        console.log('   6. ✅ Last resort: Restart Brave completely');
+                        
                         resolve(null);
                     }
                 };
                 
-                checkFreighter();
+                // For Brave: Add initial delay before first check
+                if (isBrave) {
+                    setTimeout(checkFreighter, 200);
+                } else {
+                    checkFreighter();
+                }
             });
         };
 
@@ -74,16 +205,101 @@
                 try {
                     setLoading(true);
                     setError(null);
-                    console.log('Connecting...');
+                    console.log('🔌 Connect button clicked');
+                    console.log('🌐 Is Brave Browser?', isBrave);
                     
-                    // THE KEY FIX: Use getPublicKey() not getAddress()
-                    const address = await window.freighter.getPublicKey();
+                    if (!freighter) {
+                        console.error('❌ Freighter API not available');
+                        setError('WALLET_NOT_INSTALLED');
+                        setStatus('❌ Install Freighter from freighter.app');
+                        setLoading(false);
+                        return;
+                    }
+                    
+                    console.log('📲 Freighter available, attempting connection...');
+                    console.log('📦 Freighter object keys:', Object.keys(freighter));
+                    
+                    // Check if Freighter is connected/unlocked
+                    if (freighter.isConnected === false) {
+                        console.warn('⚠️ Freighter wallet appears to be locked');
+                        setStatus('⚠️ Unlock Freighter wallet in extension');
+                    }
+                    
+                    let address = null;
+                    let lastError = null;
+                    
+                    // Try getPublicKey (primary, modern Freighter)
+                    if (typeof freighter.getPublicKey === 'function') {
+                        try {
+                            console.log('1️⃣ Calling getPublicKey()...');
+                            address = await freighter.getPublicKey();
+                            console.log('✅ SUCCESS via getPublicKey:', address);
+                        } catch (err) {
+                            lastError = err;
+                            console.error('❌ getPublicKey failed:', err.message);
+                            console.error('   Error name:', err.name);
+                            console.error('   Error code:', err.code);
+                            
+                            // Brave-specific errors
+                            if (err.message.includes('User denied') || err.message.includes('denied')) {
+                                console.log('💡 User denied permission - click Connect in Freighter popup');
+                            }
+                            if (err.message.includes('Timeou')) {
+                                console.log('💡 Timeout - Freighter may be unresponsive. Try restarting Brave');
+                            }
+                        }
+                    }
+                    
+                    // Try getAddress (secondary)
+                    if (!address && typeof freighter.getAddress === 'function') {
+                        try {
+                            console.log('2️⃣ Falling back to getAddress()...');
+                            address = await freighter.getAddress();
+                            console.log('✅ SUCCESS via getAddress:', address);
+                        } catch (err) {
+                            lastError = err;
+                            console.error('❌ getAddress failed:', err.message);
+                        }
+                    }
+                    
+                    // Try requestPublicKey (tertiary, older API)
+                    if (!address && typeof freighter.requestPublicKey === 'function') {
+                        try {
+                            console.log('3️⃣ Falling back to requestPublicKey()...');
+                            address = await freighter.requestPublicKey();
+                            console.log('✅ SUCCESS via requestPublicKey:', address);
+                        } catch (err) {
+                            lastError = err;
+                            console.error('❌ requestPublicKey failed:', err.message);
+                        }
+                    }
+                    
+                    if (!address) {
+                        const errorMsg = lastError 
+                            ? lastError.message 
+                            : 'All connection methods failed. Freighter may be locked or not on Testnet.';
+                        throw new Error(errorMsg);
+                    }
+                    
+                    console.log('✅✅ CONNECTED SUCCESSFULLY:', address);
                     setAccount(address);
-                    setStatus('Connected!');
+                    setError(null);
+                    setStatus('✅ Connected: ' + address.substring(0, 15) + '...');
                 } catch (err) {
-                    console.error(err);
-                    setError(err.message);
-                    setStatus('Connection failed');
+                    console.error('❌ Connection failed:', err.message);
+                    console.error('   Full error:', err);
+                    
+                    // Brave-specific error messages
+                    let userMessage = err.message;
+                    if (err.message.includes('locked')) {
+                        userMessage = 'Freighter wallet is locked - unlock in extension first';
+                    }
+                    if (err.message.includes('Testnet')) {
+                        userMessage = 'Freighter network set to wrong network - switch to Testnet';
+                    }
+                    
+                    setError(userMessage);
+                    setStatus('❌ ' + userMessage);
                 } finally {
                     setLoading(false);
                 }
@@ -96,8 +312,26 @@
                         e('h2', { className: 'text-3xl font-bold text-gray-800 mb-4' }, 'Stellar Insurance'),
                         e('p', { className: 'text-gray-600 mb-6' }, 'Decentralized Insurance'),
                         
+                        // Brave-specific notice
+                        isBrave && e('div', { className: 'brave-notice' },
+                            e('p', { className: 'font-bold mb-2' }, '🦁 Brave Browser Detected'),
+                            e('p', null, 'Freighter may need permission setup. See instructions below.')
+                        ),
+                        
+                        // Status indicator
+                        e('div', { className: 'freighter-status ' + (freighter ? 'ready' : error ? 'error' : 'loading') },
+                            freighter 
+                                ? '✅ Freighter Ready - Click Connect'
+                                : error ? '❌ ' + status
+                                : '⏳ Loading Freighter... (checking browser)'
+                        ),
+                        
                         error === 'WALLET_NOT_INSTALLED' && e('div', { className: 'bg-yellow-100 border-2 border-yellow-400 text-yellow-800 px-4 py-4 rounded mb-6' },
                             e('p', { className: 'font-bold mb-2' }, '📥 Freighter Not Installed'),
+                            e('p', { className: 'mb-3 text-sm' }, isBrave 
+                                ? 'Brave users: After installing, go to Settings → Extensions → Freighter → Allow on all sites'
+                                : 'Install Freighter to continue'
+                            ),
                             e('a', {
                                 href: 'https://www.freighter.app/',
                                 target: '_blank',
@@ -106,7 +340,17 @@
                         ),
                         
                         error && error !== 'WALLET_NOT_INSTALLED' && e('div', { className: 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4' },
-                            e('p', { className: 'font-bold mb-1' }, '❌ ' + error)
+                            e('p', { className: 'font-bold mb-1' }, '❌ Connection Error'),
+                            e('p', { className: 'text-sm mb-2' }, error),
+                            isBrave && e('div', { className: 'mt-3 p-2 bg-red-50 rounded text-xs text-left' },
+                                e('p', { className: 'font-bold mb-1' }, 'For Brave:'),
+                                e('ul', { className: 'list-disc list-inside space-y-1' },
+                                    e('li', null, 'Unlock Freighter wallet in extension'),
+                                    e('li', null, 'Check network is set to Testnet'),
+                                    e('li', null, 'Try: Ctrl+Shift+Delete to restart Brave'),
+                                    e('li', null, 'Open DevTools (F12) to see detailed errors')
+                                )
+                            )
                         ),
                         
                         e('button', {
